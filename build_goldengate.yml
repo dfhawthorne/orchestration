@@ -1,0 +1,17 @@
+---
+# ------------------------------------------------------------------------------
+# Driver script to configure Goldengate on XEN VMs
+# ------------------------------------------------------------------------------
+
+- name:                 "Build XEN VM images"
+  ansible.builtin.import_playbook: ../xen_server_farm/sites.yml
+
+- name:                 "Configure XEN server and start GoldenGate VMs"
+  ansible.builtin.import_playbook: ../goldengate/start_xen_vms.yml
+
+- name:                 'Install Oracle Software'
+  ansible.builtin.import_playbook: ../oracle-db-build/install_oracle_on_goldengate.yml
+
+- name:                 "Install and configure GoldenGate"
+  ansible.builtin.import_playbook: ../goldengate/install_goldengate.yml
+...

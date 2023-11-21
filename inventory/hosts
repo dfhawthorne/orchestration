@@ -1,0 +1,34 @@
+---
+# ------------------------------------------------------------------------------
+# SSH alias for XEN server
+# ------------------------------------------------------------------------------
+
+xen_server:
+  hosts:
+    victoria_root:
+      ansible_python_interpreter: "/usr/bin/python"
+      
+# ------------------------------------------------------------------------------
+# Oracle database hosts
+# ------------------------------------------------------------------------------
+
+goldengate:
+  hosts:
+    goldengate1.yaocm.id.au:
+      ansible_host:     192.168.1.150
+      SID:              "GG1V19C"
+      PDBName:          "GG1A"
+      globalDBName:     "GG1CDB19C.YAOCM.ID.AU"
+    goldengate2.yaocm.id.au:
+      ansible_host:     192.168.1.151
+      SID:              "GG2V19C"
+      PDBName:          "GG2A"
+      globalDBName:     "GG2CDB19C.YAOCM.ID.AU"
+  vars: 
+    ansible_python_interpreter: "/usr/libexec/platform-python"
+    oracle_rdbms_version: "V19C"
+    install_option:     "INSTALL_DB_AND_CONFIG"
+    starterdb_type:     "GENERAL_PURPOSE"
+    characterSet:       "AL32UTF8"
+    memoryLimit:        "3120"
+...
