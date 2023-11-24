@@ -9,9 +9,16 @@
 - name:                 "Configure XEN server and start GoldenGate VMs"
   ansible.builtin.import_playbook: ../goldengate/start_xen_vms.yml
 
+- name:                 "Set Up Passwordless SSH to GoldenGate VMs"
+  ansible.builtin.import_playbook: setup_ssh_to_vms.yml
+  vars:
+    remote_target_vms:  goldengate
+
 - name:                 'Install Oracle Software'
   ansible.builtin.import_playbook: ../oracle-db-build/install_oracle_on_goldengate.yml
 
 - name:                 "Install and configure GoldenGate"
   ansible.builtin.import_playbook: ../goldengate/install_goldengate.yml
+  vars:
+    ogg_install_option: classic
 ...

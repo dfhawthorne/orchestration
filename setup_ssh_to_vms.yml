@@ -1,0 +1,35 @@
+---
+# ------------------------------------------------------------------------------
+# Set up passwordless SSH connections to the remote target VMs
+# ------------------------------------------------------------------------------
+
+- hosts:                localhost
+  tasks:
+
+    - name:             "Get passwords"
+      ansible.builtin.include_vars:
+        file:           ../orchestration/passwords/local_user.yml
+      when:             pw_local_user is not defined
+
+    - name:             "Create SSH directory for user"
+      ansible.builtin.file:
+        path:           "{{ ansible_user_dir }}/.ssh"
+        mode:           0700
+        state:          directory
+
+    - name:             "Create SSH keys for local user"
+      ansible.builtin.expect:
+        chdir:          "{{ ansible_user_dir }}/.ssh"
+        command:        "/usr/bin/ssh-keygen -q -f id_rsa -t rsa"
+        creates:        "{{ ansible_user_dir }}/.ssh/id_rsa"
+        echo:           True
+        responses:
+          'Enter passphrase \(empty for no passphrase\): ': ''
+          'Enter same passphrase again: ': ''
+
+    - name:             "Copy SSH keys only if passwordless SSH connection is not enabled"
+      ansible.builtin.include_tasks:
+        file:           copy_ssh_keys_to_remote.yml
+      with_inventory_hostnames:
+        - "{{ remote_target_vms }}"
+...

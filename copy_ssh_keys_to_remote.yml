@@ -1,0 +1,33 @@
+---
+# ------------------------------------------------------------------------------
+# Only copy SSH keys to remote host (item) if passwordless SSH connection fails.
+# These tasks are included in a loop with the FQDN being passed in the item
+# variable.
+# The pw_local_user should contain the password of the local user.
+# ------------------------------------------------------------------------------
+
+- name:             "Test existence of passwordless SSH connection to {{ item }}"
+  ansible.builtin.command:
+    argv:
+      -             "/usr/bin/ssh"
+      -             "-o"
+      -             "PasswordAuthentication no"
+      -             "{{ item }}"
+      -             "hostname"
+  register:         test_ssh
+  changed_when:     false
+  failed_when:      false
+
+- name:             "Copy SSH key to {{ item }}"
+  ansible.builtin.expect:
+    chdir:          "{{ ansible_user_dir }}/.ssh"
+    command:        "/usr/bin/ssh-copy-id -i id_rsa {{ item }}"
+    responses:
+      'Are you sure you want to continue connecting \(yes/no\)\? ': 'yes'
+      'Are you sure you want to continue connecting \(yes/no/\[fingerprint\]\)\? ': 'yes'
+      'password: ': "{{ pw_local_user }}"
+  when:
+    - test_ssh is defined
+    - test_ssh.rc != 0
+  no_log:           True
+...
