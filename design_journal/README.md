@@ -7,3 +7,4 @@ This is the diary of design decisions made as I build up this repository in orde
 * [2023-11-24](2023_11_24.md) Relocation of Passwords
 * [2023-11-25](2023_11_25.md) Copying SSH Keys and Group Variables
 * [2023-11-28](2023_11_28.md) Complete GoldenGate Classic Orchestration
+* [2023-12-23](2023_12_23.md) Install Terraform

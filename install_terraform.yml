@@ -1,0 +1,82 @@
+---
+# ------------------------------------------------------------------------------
+# Install Terraform on localhost using the procedure from
+# https://developer.hashicorp.com/terraform/tutorials/oci-get-started/install-cli
+# ------------------------------------------------------------------------------
+
+- hosts:                localhost
+  tasks:
+  
+  - name:               'ROOT tasks for Terraform Installation'
+    block:
+
+    - name:             'Ensure that system is up to date and gnupg, software-properties-common, and curl packages are installed'
+      ansible.builtin.apt:
+        name:
+          -             gnupg
+          -             software-properties-common
+          -             curl
+        state:          present
+        update_cache:   yes
+
+    - name:             'Install the HashiCorp GPG key'
+      ansible.builtin.shell:
+        cmd:            wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor >/usr/share/keyrings/hashicorp-archive-keyring.gpg
+        creates:        /usr/share/keyrings/hashicorp-archive-keyring.gpg
+      register:         hashicorp_gpg_key
+
+    - name:             'Show results of installing HashiCorp GPG key'
+      ansible.builtin.debug:
+        var:            hashicorp_gpg_key.stdout_lines
+      when:             hashicorp_gpg_key.stdout_lines is defined
+
+    - name:             'Verify HashiCorp GPG key fingerprint'
+      ansible.builtin.command:
+        cmd:            "gpg --no-default-keyring --keyring /usr/share/keyrings/hashicorp-archive-keyring.gpg --fingerprint"
+      changed_when:     false
+      register:         key_fingerprint
+
+    - name:             'Show HashiCorp GPG key fingerprint'
+      ansible.builtin.debug:
+        var:            key_fingerprint.stdout_lines
+      when:             key_fingerprint.stdout_lines is defined
+
+    - name:             "Get LSB Release"
+      ansible.builtin.command:
+        cmd:            lsb_release -cs
+      changed_when:     false
+      register:         lsbrel
+
+    - name:             "Set LSB Release Variable"
+      ansible.builtin.set_fact:
+        lsbrel_var:     "{{ lsbrel.stdout_lines[0] }}"
+
+    - name:             'Add the official HashiCorp repository to your system'
+      ansible.builtin.lineinfile:
+        create:         yes
+        group:          root
+        line:           "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com {{ lsbrel_var }} main"
+        mode:           0644
+        owner:          root
+        path:           /etc/apt/sources.list.d/hashicorp.list
+
+    - name:             'Install Terraform from the new repository after downloading the package information from HashiCorp'
+      ansible.builtin.apt:
+        name:           terraform
+        state:          present
+        update_cache:   yes
+
+    become:             yes
+    become_user:        root
+
+  - name:               'Verify that the installation'
+    ansible.builtin.command:
+      cmd:              terraform -help
+    changed_when:       false
+    register:           terraform_help
+
+  - name:               'Show Result of Terraform Installation Verification'
+    debug:
+      var:              terraform_help.stdout_lines
+    when:               terraform_help.stdout_lines is defined
+...
