@@ -2,27 +2,37 @@
 # ------------------------------------------------------------------------------
 # Install Terraform on localhost using the procedure from
 # https://developer.hashicorp.com/terraform/tutorials/oci-get-started/install-cli
+#
+# Also set up TerraForm for use with OCI. Procedure is from
+# https://docs.oracle.com/en-us/iaas/developer-tutorials/tutorials/tf-provider/01-summary.htm
 # ------------------------------------------------------------------------------
 
 - hosts:                localhost
   tasks:
+  - name:               'Set Global Variables'
+    set_fact:
+      hashicorp_keyring:
+                        "/usr/share/keyrings/hashicorp-archive-keyring.gpg"
+      oci_private_key:  "{{ ansible_env.HOME }}/.oci/oci_auburn.pem"
+      oci_public_key:   "{{ ansible_env.HOME }}/.oci/oci_auburn_public.pem"
   
   - name:               'ROOT tasks for Terraform Installation'
     block:
 
-    - name:             'Ensure that system is up to date and gnupg, software-properties-common, and curl packages are installed'
+    - name:             'Ensure packages are installed'
       ansible.builtin.apt:
         name:
           -             gnupg
           -             software-properties-common
           -             curl
+          -             openssl
         state:          present
         update_cache:   yes
 
     - name:             'Install the HashiCorp GPG key'
       ansible.builtin.shell:
-        cmd:            wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor >/usr/share/keyrings/hashicorp-archive-keyring.gpg
-        creates:        /usr/share/keyrings/hashicorp-archive-keyring.gpg
+        cmd:            wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor >{{ hashicorp_keyring }}
+        creates:        "{{ hashicorp_keyring }}"
       register:         hashicorp_gpg_key
 
     - name:             'Show results of installing HashiCorp GPG key'
@@ -32,7 +42,12 @@
 
     - name:             'Verify HashiCorp GPG key fingerprint'
       ansible.builtin.command:
-        cmd:            "gpg --no-default-keyring --keyring /usr/share/keyrings/hashicorp-archive-keyring.gpg --fingerprint"
+        argv:
+          -             "gpg"
+          -             "--no-default-keyring"
+          -             "--keyring"
+          -             "{{ hashicorp_keyring }}"
+          -             "--fingerprint"
       changed_when:     false
       register:         key_fingerprint
 
@@ -55,12 +70,12 @@
       ansible.builtin.lineinfile:
         create:         yes
         group:          root
-        line:           "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com {{ lsbrel_var }} main"
+        line:           "deb [signed-by={{ hashicorp_keyring }}] https://apt.releases.hashicorp.com {{ lsbrel_var }} main"
         mode:           0644
         owner:          root
         path:           /etc/apt/sources.list.d/hashicorp.list
 
-    - name:             'Install Terraform from the new repository after downloading the package information from HashiCorp'
+    - name:             'Install Terraform from from HashiCorp'
       ansible.builtin.apt:
         name:           terraform
         state:          present
@@ -76,7 +91,67 @@
     register:           terraform_help
 
   - name:               'Show Result of Terraform Installation Verification'
-    debug:
+    ansible.builtin.debug:
       var:              terraform_help.stdout_lines
     when:               terraform_help.stdout_lines is defined
+
+  - name:               'Create Directory for OCI Configuration'
+    ansible.builtin.file:
+      path:             "{{ ansible_env.HOME }}/.oci"
+      state:            directory
+      mode:             0700
+
+  - name:               'Generate private key for use with OCI'
+    ansible.builtin.command:
+      argv:
+        -               "openssl"
+        -               "genrsa"
+        -               "-out"
+        -               "{{ oci_private_key }}"
+        -               "2048"
+      creates:          "{{ oci_private_key }}"
+    register:           gen_oci_priv_key
+
+  - name:               'Change Permissions for OCI Private Key'
+    ansible.builtin.file:
+      path:             "{{ oci_private_key }}"
+      state:            file
+      mode:         oci_public_key    0600
+
+  - name:               'Remove old Public Key if new OCI Private Key generated'
+    ansible.builtin.file:
+      path:             "{{ oci_public_key }}"
+      state:            absent
+    when:
+      -                 gen_oci_priv_key.changed is defined
+      -                 gen_oci_priv_key.changed
+
+  - name:               'Generate public key for use with OCI'
+    ansible.builtin.command:
+      argv:
+        -               "openssl"
+        -               "rsa"
+        -               "-pubout"
+        -               "-in"
+        -               "{{ oci_private_key }}"
+        -               "-out"
+        -               "{{ oci_public_key }}"
+      creates:          "{{ oci_public_key }}"
+    register:           gen_oci_pub_key
+
+  - name:               'Prompt user to update OCI profile'
+    ansible.builtin.debug:
+      msg: 
+        - Add the public key to your user account.
+        - In the OCI Console's top navigation bar, click the Profile menu, and then go to User settings.
+        - Click API Keys.
+        - Click Add API Key.
+        - Select Paste Public Keys.
+        - "Paste value from {{ oci_public_key }}, including the lines with BEGIN PUBLIC KEY and END PUBLIC KEY."
+        - Click Add.
+        - You have now set up the RSA keys to connect to your OCI account.
+    when:
+      -                  gen_oci_pub_key.changed is defined
+      -                  gen_oci_pub_key.changed
+
 ...
