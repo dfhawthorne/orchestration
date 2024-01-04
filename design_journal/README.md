@@ -9,3 +9,4 @@ This is the diary of design decisions made as I build up this repository in orde
 * [2023-11-28](2023_11_28.md) Complete GoldenGate Classic Orchestration
 * [2023-12-23](2023_12_23.md) Install Terraform
 * [2023-12-24](2023_12_24.md) Set Up OCI Terraform
+* [2024-01-04](2024_01_04.md) GRIDCTRL is being dropped as DNS Server for AUBURN

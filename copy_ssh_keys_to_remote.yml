@@ -6,6 +6,17 @@
 # The pw_local_user should contain the password of the local user.
 # ------------------------------------------------------------------------------
 
+- name:             "Set Up DNS if {{ item }} is Not Resolvable"
+  ansible.builtin.command:
+    argv:
+      -             "resolvectl"
+      -             "dns"
+      -             "{{ ansible_default_ipv4.alias }}"
+      -             "192.168.1.252"
+  become:           yes
+  become_user:      root
+  when:             "{{ item is not ansible.utils.resolvable }}"    
+
 - name:             "Test existence of passwordless SSH connection to {{ item }}"
   ansible.builtin.command:
     argv:
