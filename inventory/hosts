@@ -25,8 +25,11 @@ goldengate:
       PDBName:          "GG2A"
       globalDBName:     "GG2CDB19C.YAOCM.ID.AU"
   vars: 
-    ansible_python_interpreter: "/usr/libexec/platform-python"
-    oracle_rdbms_version: "V19C"
+    ansible_python_interpreter:
+                        "/usr/libexec/platform-python"
+    oracle_rdbms_version:
+                        "V19C"
+    DB_PSU:             "19.21"
     install_option:     "INSTALL_DB_AND_CONFIG"
     starterdb_type:     "GENERAL_PURPOSE"
     characterSet:       "AL32UTF8"
